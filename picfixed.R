@@ -6,8 +6,11 @@
 # which was originally modified from the pic function in the R ape library
 # written by Emmanuel Paradis paradis@isem.univ-montp2.fr
 #
-# David Ackerly, 2005, dackerly@berkeley.edu 
-
+# This script is also extended to calculate multivariate contrasts
+# based on McPeek et al. 2008 (DOI: 10.1086/587076).
+#
+# Original script by David Ackerly, 2005, dackerly@berkeley.edu 
+# Modified by Milton Tan, 2016
 
 picfixed<-function (x, phy, scaled = TRUE, var.contrasts = FALSE) 
 {
@@ -17,11 +20,10 @@ picfixed<-function (x, phy, scaled = TRUE, var.contrasts = FALSE)
     nb.node <- phy$Nnode
     if (nb.node != nb.tip - 1) 
         stop("\"phy\" is not fully dichotomous")
-    if (length(x) != nb.tip+nb.node) 
+    if (length(as.matrix(x)[,1]) != nb.tip+nb.node) 
         stop("length of phenotypic and of phylogenetic data do not match")
-    p <- as.numeric(rep(NA, nb.tip + nb.node))
-    p <- x
-    names(p) <- as.character(c(1:(nb.tip + nb.node)))
+    p <- as.matrix(x)
+    rownames(p) <- as.character(c(1:(nb.tip + nb.node)))
     bl <- phy$edge.length
     contr <- as.numeric(rep(NA, nb.node))
     names(contr) <- as.character(unique(phy$edge[, 1]))
@@ -37,13 +39,25 @@ picfixed<-function (x, phy, scaled = TRUE, var.contrasts = FALSE)
         pair <- phy$edge[pair.ind, 2]
         a <- pair[1]
         b <- pair[2]
-        pa <- p[names(p) == a]
-        pb <- p[names(p) == b]
-        if (scaled) 
-            contr[count] <- (pa - pb)/sqrt(bl[i] + bl[j])
-        else contr[count] <- pa - pb
         if (var.contrasts) 
             var.con[count] <- bl[i] + bl[j]
+        if (ncol(p) == 1) {
+            pa <- p[rownames(p) == a]
+            pb <- p[rownames(p) == b]
+            if (scaled) 
+                contr[count] <- (pa - pb)/sqrt(bl[i] + bl[j])
+            else contr[count] <- pa - pb
+        } else {
+            z <- NULL
+            for (i in 1:ncol(p)) {
+                pa <- p[rownames(p) == a,i]
+                pb <- p[rownames(p) == b,i]
+                z <- c(z,pa-pb)
+                }
+            if (scaled) 
+                contr[count] <- sqrt(sum(z^2))/sqrt(bl[i] + bl[j])
+            else contr[count] <- sqrt(sum(z^2))
+        }
     }
     if (var.contrasts) 
         return(cbind(contr, var.con))
