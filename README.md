@@ -1,5 +1,7 @@
 ### The DOT Test ###
 
+The divergence-order test tests if a continuous character diverges before another character in the course of a clade's evolution.
+
 Original script by D.D. Ackerly and C.O. Webb
 Ecological Archives E087-110-S1
 Available here: http://esapubs.org/archive/ecol/E087/110/suppl-1.htm
