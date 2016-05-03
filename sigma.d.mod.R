@@ -1,4 +1,4 @@
-# This function is modified from the sigma.d function provided by Adams 2013 
+# This function is modified from the sigma.d function provided by Adams 2014 
 # (DOI: 10.1093/sysbio/syt105). This modified sigma.d does not allow specifying
 # separate groups of taxa (as originally scripted), and simply calculates sigma.d.all
 # for all taxa.
