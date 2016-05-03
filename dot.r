@@ -12,9 +12,8 @@
 # 
 # This script is also extended to calculate the D-statistic given multivariate  
 # data (eg. multiple axes of shape). Multivariate contrasts are calculated based 
-# on McPeek et al. 2008 (DOI: 10.1086/587076), multivariate ancestral states are 
-# calculated based on geomorph scripts (Adams & Otarola-Castillo 2013), and multvariate 
-# rates are calculated using a modified script based on sigma.d by Adams 2014
+# on McPeek et al. 2008 (DOI: 10.1086/587076), and multvariate rates are
+# calculated using a modified script based on sigma.d by Adams 2014
 # (DOI: 10.1093/sysbio/syt105). The modified sigma.d does not allow specifying
 # separate groups, and calculates sigma.d for the entire dataset.
 #
@@ -42,16 +41,16 @@ dot <- function (tree, x, y, nsim = 0, replace=FALSE)
 
 # Run ace and sigma.d
 	if (ncol(x) == 1) {
-	ace_x <- ace(as.numeric(x),tree)
+	ace_x <- reconstruct(as.numeric(x),tree,method="ML")
 	ace_x_ace <- as.matrix(ace_x$ace)
 	ace_x_se <- as.matrix((ace_x$CI95[,2]-ace_x$CI95[,1])/3.92)
-	beta1 <- ace_x$sigma2[1]
+	beta1 <- ace(as.numeric(x),tree,method="ML")$sigma2[1]
 	} else {
 	ace_x_ace <- NULL
 	ace_x_se <- NULL
 	for (i in 1:ncol(x)) {
         x1 <- x[, i]
-        ace_tmp<-ace(x1, tree, method = "ML")
+        ace_tmp<-reconstruct(x1, tree, method = "ML")
         tmp <- ace_tmp$ace
         tmp2 <- (ace_tmp$CI95[,2]-ace_tmp$CI95[,1])/3.92
         ace_x_ace <- cbind(ace_x_ace, tmp)
@@ -60,17 +59,17 @@ dot <- function (tree, x, y, nsim = 0, replace=FALSE)
     beta1 <- sigma.d(tree,x)
     }
     if (ncol(y) == 1) {
-	ace_y <- ace(as.numeric(y),tree)
+	ace_y <- reconstruct(as.numeric(y),tree,method="ML")
 	ace_y_ace <- as.matrix(ace_y$ace)
 	ace_y_se <- as.matrix((ace_y$CI95[,2]-ace_y$CI95[,1])/3.92)
-	beta2 <- ace_y$sigma2[1]
+	beta2 <- ace(as.numeric(y),tree,method="ML")$sigma2[1]
 	} else {
 	ace_y_ace <- NULL
 	ace_y_se <- NULL
 	ace_y <- NULL
 	for (i in 1:ncol(y)) {
         y1 <- y[, i]
-        ace_tmp<-ace(y1, tree, method = "ML")
+        ace_tmp<-reconstruct(y1, tree, method = "ML")
         tmp <- ace_tmp$ace
         tmp2 <- (ace_tmp$CI95[,2]-ace_tmp$CI95[,1])/3.92
         ace_y_ace <- cbind(ace_y_ace, tmp)
@@ -160,14 +159,15 @@ ifelse (BLzero == 0,
 	for (r in c(1:Nreps)) 
 	{
 		# bootstrap of ace contrasts
-		for (n in c((NTips+1):NTot)) 
-		{
-			for (i in 1:ncol(x)) {
-			Xr[n,i] <- rnorm(1,X[n,i],Xse[n,i])
-			Yr[n,i] <- rnorm(1,Y[n,i],Yse[n,i])
+		for (n in (NTips+1):NTot) {
+			for (i in 1:ncol(X)) {
+				Xr[n,i]<-rnorm(1,X[n,i],Xse[n,i])
+			}
+			for (i in 1:ncol(Y)) {
+				Yr[n,i]<-rnorm(1,Y[n,i],Yse[n,i])
 			}
 		}
-		
+
 		ACx <- abs(picfixed(Xr,tree,scaled=FALSE))
 		RageX <- cor(ACx,ages)
 		mnageX <- weighted.mean(ages,ACx)
