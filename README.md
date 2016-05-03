@@ -21,7 +21,7 @@ Note, you may receive warnings when running the script due to NaNs produced duri
 
 dot(tree, x, y, nsim = 0, replace=FALSE)
 
-Where "tree" is a phylo object, "x" and "y" are named vectors for the traits of interest (as accepted by ace) or named matrices for multidimensional characters, "nsim" is the number of bootstrap replicates to simulate (eg. 1000), and "replace" is a logical for whether to sample with replacement in null models.
+Where "tree" is a phylo object, "x" and "y" are named vectors for the traits of interest (as accepted by ace) or matrices for multidimensional characters with taxa as row names, "nsim" is the number of bootstrap replicates to simulate (eg. 1000), and "replace" is a logical for whether to sample with replacement in null models.
 
 ### Output ###
 The dot function returns a matrix of a single row and with named columns for each of the variables. Below README text is copied from the original README of the DOT Test, describing the output variables of the dot function.
