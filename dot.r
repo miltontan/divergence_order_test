@@ -9,11 +9,23 @@
 # Milton Tan
 # Unlike Ackerly's original script, this function only requires ape.
 # Ancestral state reconstruction is herein performed in ace
+# 
+# This script is also extended to calculate the D-statistic given multivariate  
+# data (eg. multiple axes of shape). Multivariate contrasts are calculated based 
+# on McPeek et al. 2008 (DOI: 10.1086/587076), multivariate ancestral states are 
+# calculated based on geomorph scripts (Adams & Otarola-Castillo 2013), and multvariate 
+# rates are calculated using a modified script based on sigma.d by Adams 2013
+# (DOI: 10.1093/sysbio/syt105). The modified sigma.d does not allow specifying
+# separate groups, and calculates sigma.d for the entire dataset.
 #
 # Note, this script requires ape and msm to be loaded
+# It also requires picfixed and sigma.d loaded as functions in the environment
 
 dot <- function (tree, x, y, nsim = 0, replace=FALSE)
 {
+# Reformat objects if necessary
+	x <- as.matrix(as.matrix(x)[tree$tip.label, ])
+	y <- as.matrix(as.matrix(y)[tree$tip.label, ])
 # Set flag BLzero = 1 if tree has zero length branches; = 0 if not
 	ifelse(min(tree$edge.length) == 0,
 	{
@@ -28,26 +40,51 @@ dot <- function (tree, x, y, nsim = 0, replace=FALSE)
 	Ncont <- NTips-1
 	qq<-((1:Ncont)-0.5)/(Ncont) #quantiles for truncated normal prob plots
 
-# Run ace and generate Ttips and Tint directly
-	ace_x <- ace(x,tree)
-	ace_y <- ace(y,tree)
+# Run ace and sigma.d
+	if (ncol(x) == 1) {
+	ace_x <- ace(as.numeric(x),tree)
+	ace_x_ace <- as.matrix(ace_x$ace)
+	ace_x_se <- as.matrix((ace_x$CI95[,2]-ace_x$CI95[,1])/3.92)
 	beta1 <- ace_x$sigma2[1]
+	} else {
+	ace_x_ace <- NULL
+	ace_x_se <- NULL
+	for (i in 1:ncol(x)) {
+        x1 <- x[, i]
+        ace_tmp<-ace(x1, tree, method = "ML")
+        tmp <- ace_tmp$ace
+        tmp2 <- (ace_tmp$CI95[,2]-ace_tmp$CI95[,1])/3.92
+        ace_x_ace <- cbind(ace_x_ace, tmp)
+        ace_x_se <- cbind(ace_x_se, tmp2)
+    }
+    beta1 <- sigma.d(tree,x)
+    }
+    if (ncol(y) == 1) {
+	ace_y <- ace(as.numeric(y),tree)
+	ace_y_ace <- as.matrix(ace_y$ace)
+	ace_y_se <- as.matrix((ace_y$CI95[,2]-ace_y$CI95[,1])/3.92)
 	beta2 <- ace_y$sigma2[1]
-	Ttips <- data.frame(node=1:length(tree$tip.label),age=rep(0,length(tree$tip.label)),taxon=tree$tip.label,x=x[tree$tip.label],x_se=rep(0,length(tree$tip.label)),y=y[tree$tip.label],y_se=rep(0,length(tree$tip.label)))
-	rownames(Ttips) <- Ttips[,'taxon']
-	Tint <- data.frame(node=unique(tree$edge[,1]),age=branching.times(tree),taxon=rep("",length(unique(tree$edge[,1]))),x=ace_x$ace,x_se=(ace_x$CI95[,2]-ace_x$CI95[,1])/3.92,y=ace_y$ace,y_se=(ace_y$CI95[,2]-ace_y$CI95[,1])/3.92)
-	rownames(Tint) <- unique(tree$edge[, 1])
+	} else {
+	ace_y_ace <- NULL
+	ace_y_se <- NULL
+	ace_y <- NULL
+	for (i in 1:ncol(y)) {
+        y1 <- y[, i]
+        ace_tmp<-ace(y1, tree, method = "ML")
+        tmp <- ace_tmp$ace
+        tmp2 <- (ace_tmp$CI95[,2]-ace_tmp$CI95[,1])/3.92
+        ace_y_ace <- cbind(ace_y_ace, tmp)
+        ace_y_se <- cbind(ace_y_se, tmp2)
+    }
+    beta2 <- sigma.d(tree,y)
+    }
 
-# Recombine traits data, tips first then internals
-	T2 <- rbind(Ttips,Tint)
-	colnames(T2) <- colnames(Ttips)
-
-#parse vars and ses
-	ages <- as.numeric(Tint[,'age'])
-	X <- as.numeric(T2[,'x'])
-	Xse <- as.numeric(T2[,'x_se'])
-	Y <- as.numeric(T2[,'y'])
-	Yse <- as.numeric(T2[,'y_se'])
+# Parse ages, vars, ses
+	ages <- as.numeric(branching.times(tree))
+	X <- rbind(x,ace_x_ace)
+	Xse <- rbind(matrix(0,nrow=nrow(x),ncol=ncol(x)),ace_x_se)
+	Y <- rbind(y,ace_y_ace)
+	Yse <- rbind(matrix(0,nrow=nrow(y),ncol=ncol(y)),ace_y_se)
 
 #calculation of mean ages based on ace contrasts 
 # ACx is vector of absolute contrasts
@@ -68,14 +105,32 @@ ifelse (BLzero == 0,
 	# Contrasts based on Felsenstein's algorithm are used
 	# to check assumptions of Brownian motion, and for significance
 	# testing by alternative null models discussed in online archives
-	Cx <- abs(pic(X[1:NTips],tree,scaled=FALSE))
-	Cy <- abs(pic(Y[1:NTips],tree,scaled=FALSE))
+	if (ncol(x) == 1) {
+	Cx <- abs(pic(x,tree,scaled=FALSE))
+	} else {
+	Cx <- sqrt(apply(apply(x,2,pic,phy=tree,scaled=FALSE)^2,1,sum))
+	}
+	if (ncol(y) == 1) {
+	Cy <- abs(pic(y,tree,scaled=FALSE))
+	} else {
+	Cy <- sqrt(apply(apply(y,2,pic,phy=tree,scaled=FALSE)^2,1,sum))
+	}
 	CageX <- weighted.mean(ages,Cx)
  	CageY <- weighted.mean(ages,Cy)
 	CxObs <- Cx
 	CyObs <- Cy
-	Fx <- pic(X[1:NTips],tree,var.contrasts=TRUE)
-	Fy <- pic(Y[1:NTips],tree,var.contrasts=TRUE)
+	if (ncol(x) == 1) {
+	Fx <- pic(x,tree,var.contrasts=TRUE)
+	} else {
+	Fx <- pic(x[,1],tree,var.contrasts=TRUE)
+	Fx[,1] <- sqrt(apply(apply(x,2,pic,phy=tree,scaled=FALSE)^2,1,sum))/sqrt(Fx[,2])
+	}
+	if (ncol(y) == 1) {
+	Fy <- pic(y,tree,var.contrasts=TRUE)
+	} else {
+	Fy <- pic(y[,1],tree,var.contrasts=TRUE)
+	Fy[,1] <- sqrt(apply(apply(y,2,pic,phy=tree,scaled=FALSE)^2,1,sum))/sqrt(Fy[,2])
+	}
 	# Check if standardized contrasts are correlated with their SD
 	BMx <- cor(sqrt(Fx[,2]),abs(Fx[,1]))
 	BMy <- cor(sqrt(Fy[,2]),abs(Fy[,1]))
@@ -107,9 +162,10 @@ ifelse (BLzero == 0,
 		# bootstrap of ace contrasts
 		for (n in c((NTips+1):NTot)) 
 		{
-			#print(n)
-			Xr[n] <- rnorm(1,X[n],Xse[n])
-			Yr[n] <- rnorm(1,Y[n],Yse[n])
+			for (i in 1:ncol(x)) {
+			Xr[n,i] <- rnorm(1,X[n,i],Xse[n,i])
+			Yr[n,i] <- rnorm(1,Y[n,i],Yse[n,i])
+			}
 		}
 		
 		ACx <- abs(picfixed(Xr,tree,scaled=FALSE))
@@ -123,8 +179,22 @@ ifelse (BLzero == 0,
 		ifelse (BLzero == 0, 
 		{
 		# tip randomization and contrast randomization here
-		Cx <- abs(pic(sample(X[1:NTips],replace=replace),tree,scaled=FALSE))
-		Cy <- abs(pic(sample(Y[1:NTips],replace=replace),tree,scaled=FALSE))
+		if (ncol(x) == 1) {
+		Cx <- abs(pic(sample(x,replace=replace),tree,scaled=FALSE))
+		} else {
+		Xrs<-apply(x,2,sample,replace=replace)
+		rownames(Xrs)<-rownames(x)
+		Cx <- pic(Xrs[,1],tree,var.contrasts=TRUE)
+		Cx[,1] <- sqrt(apply(apply(Xrs,2,pic,phy=tree,scaled=FALSE)^2,1,sum))/sqrt(Cx[,2])
+		}
+		if (ncol(y) == 1) {
+		Cy <- abs(pic(sample(y,replace=replace),tree,scaled=FALSE))
+		} else {
+		Yrs<-apply(y,2,sample,replace=replace)
+		rownames(Yrs)<-rownames(y)
+		Cy <- pic(Yrs[,1],tree,var.contrasts=TRUE)
+		Cy[,1] <- sqrt(apply(apply(Yrs,2,pic,phy=tree,scaled=FALSE)^2,1,sum))/sqrt(Cy[,2])
+		}
 		CageX1 <- sum(Cx*ages)/sum(Cx)
 	 	CageY1 <- sum(Cy*ages)/sum(Cy)
 		# randomize contrasts
@@ -146,25 +216,6 @@ ifelse (BLzero == 0,
 
 # Add one for observed data
 	Nreps<-Nreps+1
-
-#mean and standard deviation of ace contrasts at each node
-#ACx and ACy are now averages across all reps
-	meanACx <- cumACx/Nreps
-	SDx <- (cumACx2-(cumACx^2/Nreps))/(Nreps-1)
-	SDx[SDx<0] <- 0
-	SDx <- sqrt(SDx)
-	
-	meanACy <- cumACy/Nreps
-	SDy <- (cumACy2-(cumACy^2/Nreps))/(Nreps-1)
-	SDy[SDy<0] <- 0
-	SDy <- sqrt(SDy)
-	
-	#standardize contrasts relative to largest
-	#SDx <- SDx/max(meanACx)
-	#meanACx <- ACx/max(meanACx) 
-	
-	#SDy <- SDy/max(meanACy)
-	#meanACy <- ACy/max(meanACy)
 
 #calculate differences in mean age under bootstrap
 	agediff <- as.array(result[,1]-result[,2])
