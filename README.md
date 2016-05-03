@@ -8,18 +8,20 @@ Please read the divergence-order test paper before conducting the test:
 D. D. Ackerly, D. S. Schwilk, and C. O. Webb. 2006. Niche evolution and adaptive radiation: testing the order of trait divergence. Ecology 87:S50–S61.
 
 ### Modifications from the original script ###
-The main modification to this script is the removal of the dependency on ANCML (Schluter et al. 1997), replaced by ace implemented in ape. Other modifications include storing the DOT test as a function that accepts settings (as opposed to requiring modification of the script directly), edits for how tip.label and nodes are specified, and removing the BATCH option and printing all 22 variables (last 9 omitted if zero branch lengths are present) by default.
+A major modification is the removal of the dependency on ANCML (Schluter et al. 1997), replaced by ace implemented in ape. Other modifications include storing the DOT test as a function that accepts settings (as opposed to requiring modification of the script directly), minor edits for how tip.label and nodes are specified, and removing the BATCH option and printing all 22 variables (last 9 omitted if zero length branches are present) by default. Implementing dot as a function allows for repeating the analysis across a distribution of trees stored in a multiPhylo object using lapply.
 
-Note, you may receive warnings when running the script due to NaNs produced during the maximum-likelihood ancestral state reconstruction.
+In addition, heavy modifications were made to implement multivariate analysis of DOT. This is based on the multivariate independent contrasts developed by McPeek et al. 2008 (doi: 10.1086/587076). In addition, to calculate evolutionary rate for multivariate characters, we implemented the calculation of rate using the sigma.d function by Adams 2014 (doi: 10.1093/sysbio/syt105), modified to only calculate a single rate for all taxa. 
+
+Note, you may receive warnings when running the script due to NaNs produced during the maximum-likelihood ancestral state reconstruction. I chose to use ML reconstruction because the original DOT analysis did so, however other potential ancestral state reconstruction methods are possible that may avoid these warnings.
 
 ### Instructions ###
 
-1. The R libraries 'ape' and 'msm' are required. Running dot.R and picfixed.R will store dot and picfixed as functions within R.
+1. The R libraries 'ape' and 'msm' are required. Running dot.R, picfixed.R, and sigma.d.mod.R will store dot, picfixed, and sigma.d as functions within R.
 2. The dot function takes the following commands: 
 
 dot(tree, x, y, nsim = 0, replace=FALSE)
 
-Where "tree" is a phylo object, "x" and "y" are named vectors for the traits of interest (as accepted by ace), "nsim" is the number of bootstrap replicates to simulate (eg. 1000), and "replace" is a logical for whether to sample with replacement in null models.
+Where "tree" is a phylo object, "x" and "y" are named vectors for the traits of interest (as accepted by ace) or named matrices for multidimensional characters, "nsim" is the number of bootstrap replicates to simulate (eg. 1000), and "replace" is a logical for whether to sample with replacement in null models.
 
 ### Output ###
 The dot function returns a matrix of a single row and with named columns for each of the variables. Below README text is copied from the original README of the DOT Test, describing the output variables of the dot function.
