@@ -14,7 +14,7 @@
 # data (eg. multiple axes of shape). Multivariate contrasts are calculated based 
 # on McPeek et al. 2008 (DOI: 10.1086/587076), multivariate ancestral states are 
 # calculated based on geomorph scripts (Adams & Otarola-Castillo 2013), and multvariate 
-# rates are calculated using a modified script based on sigma.d by Adams 2013
+# rates are calculated using a modified script based on sigma.d by Adams 2014
 # (DOI: 10.1093/sysbio/syt105). The modified sigma.d does not allow specifying
 # separate groups, and calculates sigma.d for the entire dataset.
 #
