@@ -1,6 +1,6 @@
 ### The DOT Test ###
 
-The divergence-order test tests if a continuous character diverges before another continuous character in the course of a clade's evolution. 
+The divergence-order test tests if a continuous character diverges before another continuous character in the course of a clade's evolution. The test compares average node age weighted by standardized contrasts at each node, which provides an indication of whether a trait diverges relatively early or late in a clade's evolution. Using a bootstrapping procedure, statistical significance of a difference in average age of divergence in traits can be assessed.
 
 Original script by D.D. Ackerly and C.O. Webb
 Ecological Archives E087-110-S1
@@ -14,7 +14,7 @@ A major modification is the removal of the dependency on ANCML (Schluter et al. 
 
 In addition, heavy modifications were made to implement multivariate analysis of DOT. This is based on the multivariate independent contrasts developed by McPeek et al. 2008 (doi: 10.1086/587076). In addition, to calculate evolutionary rate for multivariate characters, we implemented the calculation of rate using the sigma.d function by Adams 2014 (doi: 10.1093/sysbio/syt105), modified to only calculate a single rate for all taxa. 
 
-Note, you may receive warnings when running the script due to NaNs produced during the maximum-likelihood ancestral state reconstruction. I chose to use ML reconstruction because the original DOT analysis did so, however other potential ancestral state reconstruction methods are possible that may avoid these warnings.
+Note, you may receive warnings when running the script due to NaNs produced during the maximum-likelihood ancestral state reconstruction used in calculating rates (beta, or sigma2). This does not affect the calculation of the D-statistic whatsoever.
 
 ### Instructions ###
 
